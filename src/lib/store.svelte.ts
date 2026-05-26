@@ -41,6 +41,15 @@ class EmbeddingStore {
     this.selectedIndex = this.selectedIndex === index ? null : index
   }
 
+  deletePhrase(index: number) {
+    this.phrases = this.phrases.filter((_, i) => i !== index)
+    if (this.selectedIndex === index) {
+      this.selectedIndex = null
+    } else if (this.selectedIndex !== null && this.selectedIndex > index) {
+      this.selectedIndex--
+    }
+  }
+
   setReady() {
     this.statusType  = 'ready'
     this.isReady     = true

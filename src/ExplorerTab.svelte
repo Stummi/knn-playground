@@ -4,6 +4,8 @@
 
   let inputValue = $state('')
   let inputEl: HTMLInputElement | null = null
+  let fileInputEl: HTMLInputElement | null = null
+  let uploadProgress = $state<{ done: number; total: number } | null>(null)
 
   const busy = $derived(store.isEmbedding || store.isSwitching || !store.isReady)
 
@@ -17,6 +19,29 @@
     inputValue = ''
     store.setReady()
     inputEl?.focus()
+  }
+
+  async function handleFileUpload(e: Event) {
+    const file = (e.target as HTMLInputElement).files?.[0]
+    if (!file) return
+
+    const text = await file.text()
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0)
+    if (lines.length === 0) return
+
+    store.setEmbedding()
+    uploadProgress = { done: 0, total: lines.length }
+
+    try {
+      for (let i = 0; i < lines.length; i++) {
+        store.addPhrase(lines[i], await embed(lines[i]))
+        uploadProgress = { done: i + 1, total: lines.length }
+      }
+    } finally {
+      store.setReady()
+      uploadProgress = null
+      if (fileInputEl) fileInputEl.value = ''
+    }
   }
 
   async function handleModelSwitch(e: Event) {
@@ -100,6 +125,33 @@
         </div>
       {/if}
 
+      <!-- File upload -->
+      <div class="upload-section">
+        <input
+          type="file"
+          accept=".txt,text/plain"
+          bind:this={fileInputEl}
+          onchange={handleFileUpload}
+          disabled={busy}
+          class="file-input"
+        />
+        <button
+          type="button"
+          class="upload-btn"
+          disabled={busy}
+          onclick={() => fileInputEl?.click()}
+        >↑ UPLOAD .TXT</button>
+
+        {#if uploadProgress}
+          <div class="switch-progress">
+            <div class="switch-bar">
+              <div class="switch-fill" style="width: {(uploadProgress.done / uploadProgress.total) * 100}%"></div>
+            </div>
+            <span class="switch-label">embedding {uploadProgress.done}/{uploadProgress.total}</span>
+          </div>
+        {/if}
+      </div>
+
       <!-- Model selector -->
       <div class="model-section">
         <span class="model-section-label">MODEL</span>
@@ -177,6 +229,12 @@
                   {item.score.toFixed(3)}
                 {/if}
               </span>
+              <button
+                class="delete-btn"
+                onclick={(e) => { e.stopPropagation(); store.deletePhrase(item.originalIndex) }}
+                aria-label="delete phrase"
+                tabindex="-1"
+              >×</button>
             </div>
             {#if item.score !== null && !isTarget}
               <div class="score-track">
@@ -448,6 +506,50 @@
   .cat-high .score-fill { background: var(--green); }
   .cat-mid  .score-fill { background: var(--text-muted); }
   .cat-low  .score-fill { background: var(--red); }
+
+  /* ── File upload ─────────────────────────── */
+  .file-input { display: none; }
+
+  .upload-btn {
+    width: 100%;
+    background: var(--surface-up);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    padding: 0.6rem;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+  }
+
+  .upload-btn:not(:disabled):hover {
+    background: var(--surface-hover);
+    border-color: var(--green-ring);
+    color: var(--green);
+  }
+
+  .upload-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .upload-section { display: flex; flex-direction: column; gap: 0.45rem; }
+
+  /* ── Delete button ────────────────────────── */
+  .delete-btn {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    line-height: 1;
+    padding: 0 0.1rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: color 0.15s, opacity 0.15s;
+    margin-left: 0.25rem;
+  }
+
+  .phrase-item:hover .delete-btn  { opacity: 1; }
+  .delete-btn:hover                { color: var(--red) !important; }
 
   /* ── Model selector ─────────────────────── */
   .model-section {

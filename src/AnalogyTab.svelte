@@ -7,6 +7,14 @@
   let selB = $state<number | null>(null)
   let selX = $state<number | null>(null)
 
+  // Clear selections that point past the end of the phrase list after a deletion
+  $effect(() => {
+    const len = store.phrases.length
+    if (selA !== null && selA >= len) selA = null
+    if (selB !== null && selB >= len) selB = null
+    if (selX !== null && selX >= len) selX = null
+  })
+
   const results = $derived.by((): AnalogyResult[] => {
     if (selA === null || selB === null || selX === null) return []
     const pA = store.phrases[selA]
