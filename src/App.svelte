@@ -42,7 +42,7 @@
   <header class="header">
     <div class="header-inner">
       <div class="title-block">
-        <h1 class="title">Embedding<br>Explorer</h1>
+        <h1 class="title">Embedding Explorer</h1>
         <p class="subtitle">in-browser · no server · cosine similarity</p>
       </div>
 
