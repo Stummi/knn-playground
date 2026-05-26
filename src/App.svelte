@@ -1,9 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { store } from './lib/store.svelte'
-  import { initModel, embed } from './lib/embeddings'
+  import { initModel, embed, AVAILABLE_MODELS } from './lib/embeddings'
   import ExplorerTab from './ExplorerTab.svelte'
   import AnalogyTab from './AnalogyTab.svelte'
+
+  const currentModel = $derived(
+    AVAILABLE_MODELS.find(m => m.id === store.currentModelId) ?? AVAILABLE_MODELS[0]
+  )
 
   const SEED_PHRASES = [
     'I love puppies and dogs',
@@ -16,6 +20,7 @@
     loading:   'LOADING MODEL',
     ready:     'SYSTEM READY',
     embedding: 'VECTORIZING',
+    switching: 'SWITCHING MODEL',
     error:     'SYSTEM ERROR',
   }
 
@@ -51,7 +56,7 @@
           <span class="status-dot"></span>
           <span class="status-label">{STATUS_LABEL[store.statusType]}</span>
         </div>
-        <div class="model-name">Xenova/all-MiniLM-L6-v2 · 384d</div>
+        <div class="model-name">{currentModel.id} · {currentModel.dims}d</div>
       </div>
     </div>
     <div class="rule"></div>
@@ -164,13 +169,17 @@
   }
 
   .status-chip[data-type="loading"]   .status-dot,
-  .status-chip[data-type="embedding"] .status-dot {
+  .status-chip[data-type="embedding"] .status-dot,
+  .status-chip[data-type="switching"] .status-dot {
     animation: blink 0.9s ease-in-out infinite;
   }
+
+  .status-chip[data-type="switching"] .status-dot { background: var(--amber); }
 
   .status-chip[data-type="loading"]   .status-label { color: var(--green); }
   .status-chip[data-type="ready"]     .status-label { color: var(--green); }
   .status-chip[data-type="embedding"] .status-label { color: var(--amber); }
+  .status-chip[data-type="switching"] .status-label { color: var(--amber); }
   .status-chip[data-type="error"]     .status-label { color: var(--red); }
 
   .model-name { font-size: 0.58rem; color: var(--text-dim); opacity: 0.5; letter-spacing: 0.06em; }

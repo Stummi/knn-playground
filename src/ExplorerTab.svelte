@@ -1,20 +1,42 @@
 <script lang="ts">
   import { store } from './lib/store.svelte'
-  import { embed } from './lib/embeddings'
+  import { embed, initModel, AVAILABLE_MODELS } from './lib/embeddings'
 
   let inputValue = $state('')
   let inputEl: HTMLInputElement | null = null
 
+  const busy = $derived(store.isEmbedding || store.isSwitching || !store.isReady)
+
   async function handleSubmit(e: SubmitEvent) {
     e.preventDefault()
     const text = inputValue.trim()
-    if (!text || store.isEmbedding) return
+    if (!text || busy) return
     store.setEmbedding()
     const embedding = await embed(text)
     store.addPhrase(text, embedding)
     inputValue = ''
     store.setReady()
     inputEl?.focus()
+  }
+
+  async function handleModelSwitch(e: Event) {
+    const newModelId = (e.target as HTMLSelectElement).value
+    if (newModelId === store.currentModelId || busy) return
+
+    const phraseTexts = store.phrases.map(p => p.text)
+    store.beginSwitch(phraseTexts.length)
+
+    try {
+      await initModel(newModelId)
+      const reembedded = []
+      for (let i = 0; i < phraseTexts.length; i++) {
+        reembedded.push({ text: phraseTexts[i], embedding: await embed(phraseTexts[i]) })
+        store.tickSwitch(i + 1)
+      }
+      store.finishSwitch(newModelId, reembedded)
+    } catch (err) {
+      store.setError(`Failed to load model: ${(err as Error).message}`)
+    }
   }
 
   function scoreCategory(score: number): 'high' | 'mid' | 'low' {
@@ -39,7 +61,7 @@
             type="text"
             bind:value={inputValue}
             bind:this={inputEl}
-            disabled={!store.isReady || store.isEmbedding}
+            disabled={busy}
             placeholder="enter a phrase..."
             class="text-input"
             autocomplete="off"
@@ -49,7 +71,7 @@
         <button
           type="submit"
           class="embed-btn"
-          disabled={!store.isReady || store.isEmbedding || !inputValue.trim()}
+          disabled={busy || !inputValue.trim()}
         >
           {#if store.isEmbedding}
             <span class="spinner"></span> COMPUTING
@@ -77,6 +99,37 @@
           {/if}
         </div>
       {/if}
+
+      <!-- Model selector -->
+      <div class="model-section">
+        <span class="model-section-label">MODEL</span>
+        <div class="model-select-wrap">
+          <select
+            class="model-select"
+            disabled={busy}
+            onchange={handleModelSwitch}
+          >
+            {#each AVAILABLE_MODELS as m}
+              <option value={m.id} selected={m.id === store.currentModelId}>
+                {m.label} · {m.dims}d · {m.size}
+              </option>
+            {/each}
+          </select>
+          <span class="model-select-arrow">▾</span>
+        </div>
+
+        {#if store.isSwitching && store.switchProgress}
+          {@const { done, total } = store.switchProgress}
+          <div class="switch-progress">
+            <div class="switch-bar">
+              <div class="switch-fill" style="width: {total > 0 ? (done / total) * 100 : 100}%"></div>
+            </div>
+            <span class="switch-label">
+              {total > 0 ? `re-embedding ${done}/${total}` : 'loading model...'}
+            </span>
+          </div>
+        {/if}
+      </div>
 
       <p class="hint">Click any phrase to rank the vector space by cosine similarity.</p>
     </div>
@@ -395,6 +448,79 @@
   .cat-high .score-fill { background: var(--green); }
   .cat-mid  .score-fill { background: var(--text-muted); }
   .cat-low  .score-fill { background: var(--red); }
+
+  /* ── Model selector ─────────────────────── */
+  .model-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  .model-section-label {
+    font-size: 0.55rem;
+    letter-spacing: 0.14em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .model-select-wrap {
+    position: relative;
+  }
+
+  .model-select {
+    width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    padding: 0.55rem 2rem 0.55rem 0.75rem;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .model-select:hover:not(:disabled)  { border-color: var(--border-bright); }
+  .model-select:focus                  { border-color: var(--green-ring); }
+  .model-select:disabled               { opacity: 0.4; cursor: not-allowed; }
+  .model-select option                 { background: #0f1610; }
+
+  .model-select-arrow {
+    position: absolute;
+    right: 0.65rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-dim);
+    pointer-events: none;
+    font-size: 0.65rem;
+  }
+
+  /* ── Switch progress ─────────────────────── */
+  .switch-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .switch-bar {
+    height: 2px;
+    background: var(--border);
+    overflow: hidden;
+  }
+
+  .switch-fill {
+    height: 100%;
+    background: var(--amber);
+    transition: width 0.2s ease;
+  }
+
+  .switch-label {
+    font-size: 0.55rem;
+    color: var(--amber);
+    letter-spacing: 0.08em;
+  }
 
   /* ── Responsive ──────────────────────────── */
   @media (max-width: 600px) {

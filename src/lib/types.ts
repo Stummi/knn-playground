@@ -14,4 +14,4 @@ export interface AnalogyResult extends Phrase {
   role: 'A' | 'B' | 'X' | null
 }
 
-export type StatusType = 'loading' | 'ready' | 'embedding' | 'error'
+export type StatusType = 'loading' | 'ready' | 'embedding' | 'switching' | 'error'
