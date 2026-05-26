@@ -54,6 +54,7 @@ class EmbeddingStore {
     this.statusText = '✅ AI Model ready! Try adding some phrases.'
     this.statusType = 'ready'
     this.isReady = true
+    this.isEmbedding = false
   }
 
   setEmbedding() {

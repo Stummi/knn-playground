@@ -1,4 +1,4 @@
-import { pipeline } from '@xenova/transformers'
+import { pipeline } from '@huggingface/transformers'
 import type { Phrase } from './types'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

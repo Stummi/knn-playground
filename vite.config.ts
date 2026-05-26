@@ -9,6 +9,6 @@ export default defineConfig({
     svelte(),
   ],
   optimizeDeps: {
-    exclude: ['@xenova/transformers'],
+    exclude: ['@huggingface/transformers'],
   },
 })
