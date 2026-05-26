@@ -1,6 +1,76 @@
 @import "tailwindcss";
 
-.selected {
-  border: 2px solid #3b82f6;
-  background-color: #eff6ff;
+:root {
+  --bg:            #060908;
+  --surface:       #0b100c;
+  --surface-up:    #0f1610;
+  --surface-hover: #141e15;
+  --border:        #192b1b;
+  --border-bright: #274030;
+
+  --text:          #b8d4bb;
+  --text-dim:      #3d5a42;
+  --text-muted:    #567a5a;
+
+  --green:         #4ade80;
+  --green-glow:    rgba(74, 222, 128, 0.12);
+  --green-ring:    rgba(74, 222, 128, 0.3);
+
+  --amber:         #e8c547;
+  --amber-glow:    rgba(232, 197, 71, 0.1);
+  --amber-ring:    rgba(232, 197, 71, 0.25);
+
+  --red:           #f87171;
+  --red-glow:      rgba(248, 113, 113, 0.1);
 }
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Mono', 'Courier New', monospace;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* CRT scanlines */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0px,
+    transparent 3px,
+    rgba(0, 0, 0, 0.025) 3px,
+    rgba(0, 0, 0, 0.025) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Vignette */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.45) 100%);
+  pointer-events: none;
+  z-index: 9998;
+}
+
+#app {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--border-bright); }
